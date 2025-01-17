@@ -1,0 +1,181 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import LastBlogPosts from '../components/LastBlogPosts.astro';
+
+interface Category {
+  id: number;
+  name: string;
+  count: number;
+}
+
+interface Post {
+  id: number;
+  title: {
+    rendered: string;
+  };
+  excerpt: {
+    rendered: string;
+  };
+  _embedded?: {
+    'wp:featuredmedia'?: Array<{
+      source_url: string;
+    }>;
+    author?: Array<{
+      name: string;
+      avatar_urls?: {
+        [key: string]: string;
+      };
+    }>;
+    'wp:term'?: Array<Array<{
+      id: number;
+      name: string;
+    }>>;
+  };
+  date: string;
+  categories: number[];
+  slug: string;
+}
+
+const WORDPRESS_URL = 'https:/pytaz.kevinlesieutre.com/wp-json/wp/v2';
+
+// Récupérer les catégories
+const categoriesResponse = await fetch(`${WORDPRESS_URL}/categories`);
+const categories: Category[] = (await categoriesResponse.json())
+  .filter(category => category.count > 0); // Ne garder que les catégories avec des articles
+
+// Récupérer les articles
+const postsResponse = await fetch(`${WORDPRESS_URL}/posts?_embed&per_page=10`);
+const posts: Post[] = await postsResponse.json();
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+function stripHtmlTags(html: string) {
+  return html.replace(/<[^>]*>/g, '').substring(0, 150) + '...';
+}
+
+function getCategoryName(categoryId: number): string {
+  return categories.find(cat => cat.id === categoryId)?.name || '';
+}
+---
+
+<Layout>
+  <Navbar />
+  <div class="py-24">
+    <div class="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+      <h2 class="font-manrope font-bold text-4xl text-center leading-snug text-gray-900">Articles du blog</h2>
+      <p class="text-base font-normal text-gray-500 text-center mt-3 mb-8 max-w-4xl px-4 mx-auto">
+        Découvrez mes articles sur le SEO, le marketing digital et l'optimisation web.
+      </p>
+
+      <!-- Filtres par catégories -->
+      <div class="flex flex-wrap justify-center gap-3 mb-12">
+        <button 
+          class="filter-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 bg-indigo-600 text-white hover:bg-indigo-700"
+          data-category="all"
+        >
+          Tous les articles
+        </button>
+        {categories.map((category) => (
+          <button 
+            class="filter-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 bg-white text-gray-900 border border-gray-200 hover:bg-gray-100"
+            data-category={category.id}
+          >
+            {category.name}
+            <span class="ml-2 text-xs text-gray-500">({category.count})</span>
+          </button>
+        ))}
+      </div>
+
+      <div class="grid grid-cols-1 min-[827px]:grid-cols-2 lg:grid-cols-1 gap-5 max-w-lg mx-auto min-[827px]:max-w-full lg:gap-8">
+        {posts.map((post, index) => (
+          <a 
+            href={`/blog/${post.slug}`} 
+            class="post-item block group cursor-pointer transition-all duration-500"
+          >
+            <div class="grid grid-cols-12 lg:gap-8 gap-6 p-3 lg:p-6 rounded-2xl bg-gray-50 hover:shadow-lg transition-all duration-300"
+              data-categories={post.categories.join(',')}
+            >
+              <div class={`col-span-12 ${index % 2 === 0 ? 'lg:col-span-5' : 'lg:col-span-5 lg:order-last'} flex items-center justify-center`}>
+                <img 
+                  src={post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '/default-blog-image.jpg'} 
+                  alt={post.title.rendered}
+                  class="rounded-xl w-full object-cover"
+                  style="max-height: 312px;"
+                />
+              </div>
+              <div class="col-span-12 lg:col-span-7 flex items-center">
+                <div>
+                  <!-- Tags/Catégories -->
+                  <div class="flex flex-wrap gap-2 mb-4">
+                    {post.categories.map(catId => (
+                      <span class="px-3 py-1 text-xs font-medium bg-indigo-50 text-indigo-600 rounded-full">
+                        {getCategoryName(catId)}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <h4 class="text-3xl font-manrope font-semibold leading-snug text-gray-900 group-hover:text-indigo-600 transition-colors" set:html={post.title.rendered} />
+                  <p class="pt-2 pb-4 text-base font-normal text-gray-500" set:html={stripHtmlTags(post.excerpt.rendered)} />
+                  <div class="flex items-center justify-between gap-4 mb-7">
+                    <div class="flex items-center gap-3">
+                      <img 
+                        src={post._embedded?.author?.[0]?.avatar_urls?.['96'] || '/default-avatar.jpg'}
+                        alt={`Avatar de ${post._embedded?.author?.[0]?.name}`}
+                        class="rounded-full w-10 h-10 object-cover"
+                      />
+                      <span class="text-base font-normal text-gray-900">{post._embedded?.author?.[0]?.name}</span>
+                    </div>
+                    <p class="text-base font-medium text-indigo-600">{formatDate(post.date)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+  <LastBlogPosts />
+</Layout>
+
+<script>
+  // Logique de filtrage des articles
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  const postItems = document.querySelectorAll('.post-item');
+
+  filterButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const categoryId = button.getAttribute('data-category');
+      
+      // Mise à jour des styles des boutons
+      filterButtons.forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+        btn.classList.add('bg-white', 'text-gray-900', 'hover:bg-gray-100');
+      });
+      
+      button.classList.remove('bg-white', 'text-gray-900', 'hover:bg-gray-100');
+      button.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+
+      // Filtrage des articles
+      postItems.forEach(post => {
+        if (categoryId === 'all') {
+          post.classList.remove('hidden');
+        } else {
+          const postCategories = post.getAttribute('data-categories')?.split(',');
+          if (postCategories?.includes(categoryId)) {
+            post.classList.remove('hidden');
+          } else {
+            post.classList.add('hidden');
+          }
+        }
+      });
+    });
+  });
+</script>
