@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Navbar from '../components/Navbar.astro';
 import LastBlogPosts from '../components/LastBlogPosts.astro';
 
 interface Category {
@@ -65,8 +64,10 @@ function getCategoryName(categoryId: number): string {
 }
 ---
 
-<Layout>
-  <Navbar />
+<Layout
+  title="Blog | Kevin Lesieutre - Consultant SEO Technique"
+  description="Découvrez mes articles sur le SEO technique, l'optimisation des performances web et les meilleures pratiques pour améliorer votre visibilité en ligne."
+>
   <div class="py-24">
     <div class="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
       <h2 class="font-manrope font-bold text-4xl text-center leading-snug text-gray-900">Articles du blog</h2>

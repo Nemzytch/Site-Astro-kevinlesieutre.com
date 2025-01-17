@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Navbar from '../components/Navbar.astro';
 import Hero from '../components/Hero.astro';
 import LastBlogPosts from '../components/LastBlogPosts.astro';
 
@@ -8,8 +7,10 @@ import LastBlogPosts from '../components/LastBlogPosts.astro';
 // Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
-<Layout>
-	<Navbar />
+<Layout 
+	title="Kevin Lesieutre | Consultant SEO Technique"
+	description="Optimisez votre présence en ligne et améliorez votre visibilité avec une approche technique du SEO."
+>
 	<Hero />
 	<LastBlogPosts />
 </Layout>
